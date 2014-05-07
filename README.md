@@ -284,7 +284,7 @@ To debug, follow these steps:
 1. Check the service on one of it's instances
   * Is it running? Is it insta-crashing? watch `sv s the_service`
 2. If it's insta-crashing, figure out why
-  * Check `/etc/service/the_service/logs/current`
+  * Check `/var/log/the_service/current`
   * Run it live; `sv down the_service; cd /etc/service/the_service; ./run`
 3. If it's running, is it passing health checks?
   * `curl -D - localhost:32xx/health` and ensure you get a 200
