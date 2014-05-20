@@ -3,41 +3,23 @@ include_recipe 'smartstack::default'
 
 # set up nerve
 directory node.nerve.home do
-  owner     node.smartstack.user
-  group     node.smartstack.user
   recursive true
 end
 
-if node.nerve.jarname
-  include_recipe 'java'
-
-  url = "#{node.smartstack.jar_source}/nerve/#{node.nerve.jarname}"
-  remote_file File.join(node.nerve.home, node.nerve.jarname) do
-    source url
-    mode   00644
-  end
-else
-  git node.nerve.install_dir do
-    user              node.smartstack.user
-    group             node.smartstack.user
+git node.nerve.install_dir do
     repository        node.nerve.repository
     reference         node.nerve.reference
     enable_submodules true
     action     :sync
-    notifies   :run, 'execute[nerve_install]', :immediately
-    notifies   :restart, 'runit_service[nerve]'
-  end
+end
 
-  # do the actual install of nerve and dependencies
-  execute "nerve_install" do
+#  do the actual install of nerve and dependencies
+execute "nerve_install" do
     cwd     node.nerve.install_dir
-    user    node.smartstack.user
-    group   node.smartstack.user
-    action  :nothing
+    action  :run
 
     environment ({'GEM_HOME' => node.smartstack.gem_home})
-    command     "bundle install --without development"
-  end
+    command     "/opt/rbenv/shims/bundle install --without development"
 end
 
 # add all checks from all the enabled services
@@ -57,8 +39,8 @@ node.nerve.enabled_services.each do |service_name|
 
   check = service['nerve']
   check['zk_hosts'] = node.zookeeper.smartstack_cluster
-  check['zk_path'] = service['zk_path']
-  check['host'] = node.ipaddress
+  #check['zk_path'] = service['zk_path']
+  #check['host'] = service['host']    #changed from node.ipaddress so it puts what we choose!
 
   # support multiple copies of the service on one machine with multiple ports in services
   check['ports'] ||= []
@@ -73,17 +55,16 @@ node.nerve.enabled_services.each do |service_name|
 end
 
 # write the config to the config file for nerve
+
+nerve_hash = JSON::pretty_generate(node.nerve.config.deep_to_hash)
 file node.nerve.config_file do
-  user    node.smartstack.user
-  group   node.smartstack.user
-  content JSON::pretty_generate(node.nerve.config.deep_to_hash)
-  notifies :restart, 'runit_service[nerve]'
+  content nerve_hash
 end
 
 # set up runit service
 # we don't want a converge to randomly start nerve if someone is debugging
 # so, we only enable nerve; setting it up initially causes it to start,
 runit_service 'nerve' do
-  action :enable
+  action    :enable 
   default_logger true
 end

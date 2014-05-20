@@ -13,5 +13,7 @@ recipe           'smartstack::synapse', 'Installs and confgures a synapse, the s
 depends          'runit', '>= 1.1.0'
 depends          'ruby', '~> 0.9.2'
 depends          'java'
-
-supports         'ubuntu', '= 12.04'
+depends          'ruby_build', '<= 0.7.2'
+depends          'rbenv', '<= 1.4.2'
+depends          'sudo', '= 2.5.2'
+depends          'iptables', '~> 0.11.0'

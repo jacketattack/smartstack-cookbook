@@ -3,46 +3,34 @@ include_attribute 'smartstack::ports'
 # on chef-solo < 11.6, we hack around lack of environment support
 # by using node.env because node.environment cannot be set
 default.smartstack.env = (node.has_key?('env') ? node.env : node.environment)
+#default.smartstack.env = "develop"
 
 default.smartstack.services = {
-  'synapse' => {},
-  'nerve'   => {},
-  'haproxy' => {},
-
-  'helloworld' => {
-    'synapse' => {
-      'discovery' => { 'method' => 'zookeeper' },
-      'haproxy' => {
-        'server_options' => 'check inter 1s rise 1 fall 1',
-        'listen' => [
-          'mode http',
-          'option httpchk GET /ping',
-        ],
-      },
-    },
-    'nerve' => {
-      'port' => 9494,
-      'check_interval' => 1,
-      'checks' => [
-        { 'type' => 'http', 'uri' => '/health', 'timeout' => 1, 'rise' => 1, 'fall' => 2 },
-      ],
-    },
-  },
-
-  'helloworld-leader' => {
-    'zk_path' => "/#{node.smartstack.env}/services/helloworld/services",
-    'synapse' => {
-      'discovery' => { 'method' => 'zookeeper' },
-      'leader_election' => true,
-      'haproxy' => {
-        'server_options' => 'check inter 1s rise 1 fall 1',
-        'listen' => [
-          'mode http',
-          'option httpchk GET /ping',
-        ],
-      },
-    },
-  }
+    'synapse' => {},
+    'nerve' => {},
+    'haproxy' => {},
+    'echo' => {
+        'synapse' => {
+            'discovery' => { 
+                'method' => 'zookeeper',
+                'path' => '/services/nerve/echo',        
+            },
+            'haproxy' => {
+                 'port' => 3500 
+            }  
+        },
+        'nerve' => {
+            'host' => 'localhost',
+            'port' => 21567,
+            'reporter_type' => 'zookeeper',
+            'zk_path' => '/services/nerve/echo',
+            'checks' => [
+                {
+                    'type' => 'tcp',
+                }
+            ]
+        }
+    }
 }
 
 # make sure each service has a smartstack config

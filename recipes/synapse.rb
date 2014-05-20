@@ -33,41 +33,27 @@ end
 
 # get the synapse code
 directory node.synapse.home do
-  owner     node.smartstack.user
-  group     node.smartstack.user
+  owner node.smartstack.user
+  group node.smartstack.user
   recursive true
 end
 
-if node.synapse.jarname
-  include_recipe 'java'
-
-  url = "#{node.smartstack.jar_source}/synapse/#{node.synapse.jarname}"
-  remote_file File.join(node.synapse.home, node.synapse.jarname) do
-    source url
-    mode   00644
-  end
-else
-  git node.synapse.install_dir do
-    user              node.smartstack.user
+git node.synapse.install_dir do
     group             node.smartstack.user
     repository        node.synapse.repository
     reference         node.synapse.reference
     enable_submodules true
     action     :sync
-    notifies   :run, 'execute[synapse_install]', :immediately
     notifies   :restart, 'runit_service[synapse]'
-  end
+end
 
   # do the actual install of synapse and dependencies
-  execute "synapse_install" do
+execute "synapse_install" do
     cwd     node.synapse.install_dir
-    user    node.smartstack.user
-    group   node.smartstack.user
-    action  :nothing
+    action  :run
 
     environment ({'GEM_HOME' => node.smartstack.gem_home})
-    command     "bundle install --without development"
-  end
+    command     "/opt/rbenv/shims/bundle install --without development"
 end
 
 # add the enabled services to the synapse config
@@ -88,9 +74,9 @@ node.synapse.enabled_services.each do |service_name|
   # enable proper logging
   if synapse_config['haproxy'].include? 'listen'
     if synapse_config['haproxy']['listen'].include? 'mode http'
-      synapse_config['haproxy']['listen'] << 'option httplog'
+      synapse_config['haproxy']['listen'] <<= 'option httplog'
     elsif synapse_config['haproxy']['listen'].include? 'mode tcp'
-      synapse_config['haproxy']['listen'] << 'option tcplog'
+      synapse_config['haproxy']['listen'] <<= 'option tcplog'
     end
   end
 
@@ -102,7 +88,9 @@ node.synapse.enabled_services.each do |service_name|
     end
 
     synapse_config['discovery']['hosts'] = node['zookeeper']['smartstack_cluster']
-    synapse_config['discovery']['path'] = service['zk_path']
+    
+    #this conflicts with readme in that this supposes that there is one overall zk_path attribute outside of nerve and synapse sub hashes
+    #synapse_config['discovery']['path'] = service['zk_path']  
   end
 
   node.default.synapse.config.services[service_name] = synapse_config
@@ -117,6 +105,6 @@ end
 
 # set up runit service
 runit_service "synapse" do
-  action :enable
+  action        :enable
   default_logger true
 end
