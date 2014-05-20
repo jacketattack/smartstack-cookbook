@@ -20,7 +20,7 @@ default.smartstack.services = {
             }  
         },
         'nerve' => {
-            'host' => 'localhost',
+            'host' => '127.0.0.1',
             'port' => 21567,
             'reporter_type' => 'zookeeper',
             'zk_path' => '/services/nerve/echo',
